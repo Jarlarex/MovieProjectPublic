@@ -1,0 +1,110 @@
+﻿<Window x:Class="MovieProject1.MovieDetailsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Movie Details" Height="800" Width="1200">
+    <!-- Window resources define reusable styles and other elements -->
+    <Window.Resources>
+        <!-- Style for icon buttons used in the UI -->
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Width" Value="100"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="FontFamily" Value="/FontAwesome.WPF;component/#FontAwesome"/>
+            <!-- ControlTemplate defines the button's appearance -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <!-- Triggers change the look when the mouse is over the button -->
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#EEEEEE"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <!-- Grid layout divides the window into sections -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/>
+            <!-- Column for the poster image -->
+            <ColumnDefinition Width="4*"/>
+            <!-- Column for movie details and interactions -->
+        </Grid.ColumnDefinitions>
+
+        <!-- Image control for displaying the movie poster -->
+        <Image x:Name="PosterImage" Grid.Column="0" Stretch="Fill" Margin="20"/>
+
+        <!-- Grid for detailed movie information and interaction controls -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- Row for the movie trailer -->
+                <RowDefinition Height="Auto"/>
+                <!-- Row for buttons and ratings -->
+                <RowDefinition Height="*"/>
+                <!-- Row for scrolling text details -->
+            </Grid.RowDefinitions>
+
+            <!-- Web browser to show the movie trailer -->
+            <WebBrowser x:Name="TrailerWebBrowser" Grid.Row="0" Margin="20,60,20,0" Height="400"/>
+
+            <!-- Horizontal stack panel for like/watchlist buttons and ratings display -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="20,20,20,0" Grid.Row="1">
+                <!-- Like button with tooltip and click event handler -->
+                <Button x:Name="LikeButton" Style="{StaticResource IconButton}" ToolTip="Add to Liked Movies" Margin="0,0,10,0" Click="LikeButton_Click">
+                    &#xf08a;
+                    <!-- Font Awesome icon -->
+                </Button>
+                <!-- Watchlist button with tooltip and click event handler -->
+                <Button x:Name="AddToWatchlistButton" Style="{StaticResource IconButton}" ToolTip="Add to Watchlist" Click="AddToWatchlistButton_Click">
+                    &#xf097;
+                    <!-- Font Awesome icon -->
+                </Button>
+                <!-- Items control to display movie ratings -->
+                <ItemsControl x:Name="RatingsItemsControl" Margin="40,10,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="images/Rotten_Tomatoes.svg.png" Width="20px" Height="20px"/>
+                                <TextBlock FontSize="20px" Text="  "/>
+                                <TextBlock FontSize="20px" FontWeight="Bold" Text="{Binding Value}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- ScrollViewer allows scrolling through the movie's detailed text information -->
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20">
+                    <!-- TextBlocks display various pieces of detailed movie information -->
+                    <TextBlock x:Name="TitleTextBlock" FontSize="20" FontWeight="Bold" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="YearTextBlock" Margin="0,10,0,0"/>
+                    <TextBlock x:Name="RatedTextBlock" Margin="0,5,0,0"/>
+                    <TextBlock x:Name="RuntimeTextBlock" Margin="0,5,0,0"/>
+                    <TextBlock x:Name="GenreTextBlock" Margin="0,5,0,0"/>
+                    <TextBlock x:Name="DirectorTextBlock" Margin="0,5,0,0"/>
+                    <TextBlock x:Name="WriterTextBlock" Margin="0,5,0,0"/>
+                    <TextBlock x:Name="ActorsTextBlock" Margin="0,5,0,0"/>
+                    <TextBlock x:Name="PlotTextBlock" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="BoxOfficeTextBlock" Margin="0,10,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>
