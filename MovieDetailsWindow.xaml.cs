@@ -1,174 +1,124 @@
-﻿using System;
+using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Diagnostics;
-using System.Data.SqlClient;
-using System.Web;
-using System.Data.OleDb;
+using MovieProject1.Data;
 
 namespace MovieProject1
 {
-    // Window class to display details of a movie
     public partial class MovieDetailsWindow : Window
     {
-        private readonly DatabaseManager _dbManager; // Manages database operations
-        private readonly MovieDetailFull _movieDetails; // Holds full details of the movie
+        private readonly IMovieRepository _repository;
+        private readonly MovieDetailFull _movieDetails;
+        private readonly string _trailerUrl;
 
-        // Constructor initializing components and setting movie details
-        public MovieDetailsWindow(MovieDetailFull movieDetails, string trailerUrl = null)
+        public MovieDetailsWindow(
+            MovieDetailFull movieDetails,
+            string trailerUrl,
+            IMovieRepository repository)
         {
-            InitializeComponent(); // Initialize window components
-            _movieDetails = movieDetails; // Store movie details
-            _dbManager = new DatabaseManager(); // Initialize the database manager
-            UpdateMovieDetails(movieDetails, trailerUrl); // Display the movie details
+            if (movieDetails == null) throw new ArgumentNullException(nameof(movieDetails));
+            InitializeComponent();
+
+            _movieDetails = movieDetails;
+            _trailerUrl = trailerUrl;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+
+            UpdateMovieDetails();
         }
 
-        // Updates the UI with movie details and trailer
-        private void UpdateMovieDetails(MovieDetailFull movieDetails, string trailerUrl)
+        private void UpdateMovieDetails()
         {
-            try
-            {
-                // Set the poster image if available
-                if (!string.IsNullOrWhiteSpace(movieDetails.Poster))
-                {
-                    Uri posterUri;
-                    if (Uri.TryCreate(movieDetails.Poster, UriKind.Absolute, out posterUri))
-                    {
-                        PosterImage.Source = new BitmapImage(posterUri);
-                    }
-                    else
-                    {
-                        PosterImage.Source = null; // Clear poster if URL is invalid
-                    }
-                }
-                else
-                {
-                    PosterImage.Source = null; // Clear poster if no URL provided
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading poster image: {ex.Message}");
-                PosterImage.Source = null; // Clear poster on error
-            }
+            if (Uri.TryCreate(_movieDetails.Poster, UriKind.Absolute, out var posterUri))
+                PosterImage.Source = new BitmapImage(posterUri);
 
-            // Update text blocks with movie details
-            TitleTextBlock.Text = movieDetails.Title;
-            YearTextBlock.Text = $"Year: {movieDetails.Year}";
-            RatedTextBlock.Text = $"Rated: {movieDetails.Rated}";
-            RuntimeTextBlock.Text = $"Runtime: {movieDetails.Runtime}";
-            GenreTextBlock.Text = $"Genre: {movieDetails.Genre}";
-            DirectorTextBlock.Text = $"Director: {movieDetails.Director}";
-            WriterTextBlock.Text = $"Writer: {movieDetails.Writer}";
-            ActorsTextBlock.Text = $"Actors: {movieDetails.Actors}";
-            PlotTextBlock.Text = $"Plot: {movieDetails.Plot}";
-            BoxOfficeTextBlock.Text = $"Box Office: {movieDetails.BoxOffice}";
+            TitleTextBlock.Text = _movieDetails.Title ?? string.Empty;
+            YearTextBlock.Text = "Year: " + (_movieDetails.Year ?? "N/A");
+            RatedTextBlock.Text = "Rated: " + (_movieDetails.Rated ?? "N/A");
+            RuntimeTextBlock.Text = "Runtime: " + (_movieDetails.Runtime ?? "N/A");
+            GenreTextBlock.Text = "Genre: " + (_movieDetails.Genre ?? "N/A");
+            DirectorTextBlock.Text = "Director: " + (_movieDetails.Director ?? "N/A");
+            WriterTextBlock.Text = "Writer: " + (_movieDetails.Writer ?? "N/A");
+            ActorsTextBlock.Text = "Actors: " + (_movieDetails.Actors ?? "N/A");
+            PlotTextBlock.Text = "Plot: " + (_movieDetails.Plot ?? "N/A");
+            BoxOfficeTextBlock.Text = "Box Office: " + (_movieDetails.BoxOffice ?? "N/A");
 
-            // Display Rotten Tomatoes rating if available
-            var rottenTomatoesRating = movieDetails.Ratings.FirstOrDefault(r => r.Source.Contains("Rotten Tomatoes"));
-            if (rottenTomatoesRating != null)
-            {
-                RatingsItemsControl.ItemsSource = new[] { rottenTomatoesRating };
-            }
+            var rating = (_movieDetails.Ratings ?? new System.Collections.Generic.List<Rating>())
+                .FirstOrDefault(r => r != null &&
+                    string.Equals(r.Source, "Rotten Tomatoes", StringComparison.OrdinalIgnoreCase));
+            RatingsItemsControl.ItemsSource = rating == null ? null : new[] { rating };
 
-            // Load the trailer if a URL is provided
-            if (!string.IsNullOrEmpty(trailerUrl))
-            {
-                LoadTrailer(trailerUrl);
-            }
+            if (!string.IsNullOrWhiteSpace(_trailerUrl))
+                LoadTrailer(_trailerUrl);
         }
 
-        // Loads the movie trailer in a web browser control
         private void LoadTrailer(string trailerUrl)
         {
-            var videoId = ExtractVideoIdFromUrl(trailerUrl); // Extract YouTube video ID from URL
-            // HTML to embed YouTube video
-            string embedHtml = $@"
-                <html>
-                    <head>
-                        <meta http-equiv='X-UA-Compatible' content='IE=edge'/>
-                        <style>
-                            body, html {{ height: 100%; margin: 0; padding: 0; overflow: hidden; }}
-                            .video {{ position: relative; padding-bottom: 56.25%; height: 0; }}
-                            .video iframe {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; }}
-                        </style>
-                    </head>
-                    <body>
-                        <div class='video'>
-                            <iframe src='https://www.youtube.com/embed/{videoId}?autoplay=0&modestbranding=1&rel=0' frameborder='0' allow='autoplay; encrypted-media' allowfullscreen></iframe>
-                        </div>
-                    </body>
-                </html>";
-            TrailerWebBrowser.NavigateToString(embedHtml); // Navigate to the HTML content
+            if (!Uri.TryCreate(trailerUrl, UriKind.Absolute, out var uri))
+                return;
+
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            var videoId = query["v"];
+
+            if (string.IsNullOrWhiteSpace(videoId))
+                videoId = uri.Segments.LastOrDefault()?.Trim('/');
+
+            if (string.IsNullOrWhiteSpace(videoId))
+                return;
+
+            var embedHtml = "<html><head><meta http-equiv='X-UA-Compatible' content='IE=edge'/></head>"
+                + "<body style='margin:0;overflow:hidden'>"
+                + "<iframe width='100%' height='100%' src='https://www.youtube.com/embed/"
+                + Uri.EscapeDataString(videoId)
+                + "?autoplay=0&modestbranding=1&rel=0' frameborder='0' allow='autoplay; encrypted-media' allowfullscreen></iframe>"
+                + "</body></html>";
+
+            TrailerWebBrowser.NavigateToString(embedHtml);
         }
 
-        // Extracts the YouTube video ID from the URL
-        private string ExtractVideoIdFromUrl(string url)
-        {
-            var uri = new Uri(url); // Parse URL to URI
-            var query = HttpUtility.ParseQueryString(uri.Query); // Parse query string
-            return query["v"] ?? url.Split('/').Last(); // Return video ID or last URL segment
-        }
-
-        // Event handler for liking a movie
         private async void LikeButton_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                // Check if the movie is already liked and add/remove accordingly
-                if (await _dbManager.MovieExistsInLiked(_movieDetails.imdbID))
-                {
-                    await _dbManager.RemoveMovieFromLiked(_movieDetails.imdbID);
-                    MessageBox.Show("Movie removed from liked movies.");
-                }
-                else
-                {
-                    bool addedSuccessfully = await _dbManager.AddMovieToLikedList(_movieDetails);
-                    if (addedSuccessfully)
-                    {
-                        MessageBox.Show("Movie added to liked list!");
-                    }
-                    else
-                    {
-                        MessageBox.Show("Failed to add movie to liked list.");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"An error occurred: {ex.Message}");
-            }
+            await ToggleAsync(
+                () => _repository.ContainsLikedAsync(_movieDetails.imdbID, CancellationToken.None),
+                () => _repository.RemoveLikedAsync(_movieDetails.imdbID, CancellationToken.None),
+                () => _repository.AddLikedAsync(_movieDetails, CancellationToken.None),
+                "liked movies");
         }
 
-        // Event handler for adding a movie to the watchlist
         private async void AddToWatchlistButton_Click(object sender, RoutedEventArgs e)
+        {
+            await ToggleAsync(
+                () => _repository.ContainsWatchlistAsync(_movieDetails.imdbID, CancellationToken.None),
+                () => _repository.RemoveWatchlistAsync(_movieDetails.imdbID, CancellationToken.None),
+                () => _repository.AddWatchlistAsync(_movieDetails, CancellationToken.None),
+                "watchlist");
+        }
+
+        private async Task ToggleAsync(
+            Func<Task<bool>> contains,
+            Func<Task> remove,
+            Func<Task> add,
+            string listName)
         {
             try
             {
-                // Check if the movie is already in the watchlist and add/remove accordingly
-                if (await _dbManager.MovieExistsInWatchlist(_movieDetails.imdbID))
+                if (await contains())
                 {
-                    await _dbManager.RemoveMovieFromWatchlist(_movieDetails.imdbID);
-                    MessageBox.Show("Movie removed from watchlist.");
+                    await remove();
+                    MessageBox.Show("Movie removed from " + listName + ".");
                 }
                 else
                 {
-                    bool addedSuccessfully = await _dbManager.AddMovieToWatchlist(_movieDetails);
-                    if (addedSuccessfully)
-                    {
-                        MessageBox.Show("Movie added to watchlist!");
-                    }
-                    else
-                    {
-                        MessageBox.Show("Failed to add movie to watchlist.");
-                    }
+                    await add();
+                    MessageBox.Show("Movie added to " + listName + ".");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred: {ex.Message}");
+                MessageBox.Show("Could not update " + listName + ": " + ex.Message);
             }
         }
     }
