@@ -88,7 +88,6 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DatabaseManager.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -106,7 +105,13 @@
     </Compile>
     <Compile Include="MovieSearchResult.cs" />
     <Compile Include="MovieViewModel.cs" />
-    <Compile Include="OmdbApiService.cs" />
+    <Compile Include="Infrastructure\AppConfiguration.cs" />
+    <Compile Include="Data\IMovieRepository.cs" />
+    <Compile Include="Data\SqliteMovieRepository.cs" />
+    <Compile Include="Services\IOmdbApiService.cs" />
+    <Compile Include="Services\OmdbApiService.cs" />
+    <Compile Include="Services\IYouTubeService.cs" />
+    <Compile Include="Services\YouTubeService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
