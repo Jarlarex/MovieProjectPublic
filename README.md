@@ -1,41 +1,40 @@
 # MovieProjectPublic
 
-# Movie Finder
-Movie Finder is a WPF application that allows users to search for movies, view details, and manage their liked movies and watchlist.
+Movie Finder is a WPF application for searching movies, viewing details and trailers, and maintaining local liked/watchlist collections.
 
-## Features
+## Architecture
 
-**Movie Search:** Search for movies using the OMDB API <br/>
-**Detailed Movie Information:** View comprehensive details about each movie, including plot, cast, ratings, and more <br/>
-**Movie Trailer:** Watch movie trailers directly within the application <br/>
-**Liked Movies:** Save and manage a list of favorite movies <br/>
-**Watchlist:** Keep track of movies you want to watch <br/>
-**Local Database:** Store liked movies and watchlist items locally <br/>
+- **WPF views** for presentation.
+- **MovieViewModel** for UI state and pagination.
+- **Services** for OMDb and YouTube API access.
+- **Repository** for local persistence.
+- **SQLite** for a self-contained local database.
 
-## Technologies Used
-
-C# / .NET <br/>
-WPF (Windows Presentation Foundation) <br/>
-OMDB API for movie data <br/>
-YouTube Data API for movie trailers <br/>
-Microsoft Access Database (.mdb) for local storage <br/>
+The database is created automatically under the user's local application data directory. No .mdb file is required.
 
 ## Setup
 
-Clone the repository <br/>
-Open the solution in Visual Studio <br/>
-Restore NuGet packages <br/>
-Add your OMDB API key and YouTube Data API key in the appropriate places in the code <br/>
-Build and run the application <br/>
+1. Install Visual Studio with the .NET Framework 4.7.2 desktop development workload.
+2. Clone the repository and restore NuGet packages.
+3. Add your API keys to App.config for local development: OmdbApiKey and YouTubeApiKey.
+4. Build and run the application.
 
-## Usage
+Do not commit real API keys. Desktop applications cannot make API keys completely secret, so provider-side restrictions should also be configured where supported.
 
-Use the search bar to find movies <br/>
-Click on a movie to view its details <br/>
-Like movies or add them to your watchlist <br/>
-Access your liked movies and watchlist from the "My Library" tab <br/>
+## Database
 
-## Dependencies
+SQLite is initialized automatically on first launch.
 
-Newtonsoft.Json <br/>
-System.Data.OleDb
+The database is stored at:
+
+%LOCALAPPDATA%/MovieProject1/MovieProject.sqlite
+
+Liked and watchlist rows use IMDb ID as their primary key, preventing duplicate entries.
+
+## Testing
+
+The repository includes automated unit tests for core ViewModel behaviour. The GitHub Actions workflow restores, builds, and runs the test suite on Windows.
+
+## Legacy migration
+
+The previous Microsoft Access/Jet implementation was removed. Existing .mdb data is not automatically imported because the original repository did not contain a canonical database/schema from which a safe migration could be verified.

@@ -1,0 +1,34 @@
+name: Build and test
+
+on:
+  push:
+    branches: [ master, "refactor/**" ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore packages
+        run: nuget restore MovieProject1.sln
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          if (-not $vs) { throw "Visual Studio MSBuild installation was not found." }
+          & "$vs\MSBuild\Current\Bin\MSBuild.exe" MovieProject1.sln /p:Configuration=Release /m
+
+      - name: Test
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          if (-not $vs) { throw "Visual Studio Test Platform installation was not found." }
+          & "$vs\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe" MovieProject1.Tests\bin\Release\MovieProject1.Tests.dll /TestAdapterPath:packages\MSTest.TestAdapter.3.6.3\build\net462
