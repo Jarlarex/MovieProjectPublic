@@ -33,6 +33,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MovieProject1.Data\MovieProject1.Data.csproj">
+      <Project>{4E0E0D7D-2B4D-4E9D-A6A5-5D3C1D1E4F77}</Project>
+      <Name>MovieProject1.Data</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="MovieViewModelTests.cs" />
     <None Include="packages.config" />
   </ItemGroup>
