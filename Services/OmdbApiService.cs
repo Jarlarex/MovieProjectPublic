@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,9 +26,7 @@ namespace MovieProject1.Services
             if (string.IsNullOrWhiteSpace(query))
                 throw new ArgumentException("Enter a movie title to search.", nameof(query));
 
-            if (string.IsNullOrWhiteSpace(_apiKey))
-                throw new InvalidOperationException("OMDb API key is not configured.");
-
+            EnsureApiKey();
             page = Math.Max(1, page);
 
             var url = "https://www.omdbapi.com/?apikey=" + Uri.EscapeDataString(_apiKey)
@@ -46,7 +45,7 @@ namespace MovieProject1.Services
                 if (!string.Equals(result.Response, "True", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException(result.Error ?? "OMDb could not find matching movies.");
 
-                result.Movies = result.Movies ?? new System.Collections.Generic.List<MovieDetail>();
+                result.Movies = result.Movies ?? new List<MovieDetail>();
                 return result;
             }
         }
@@ -59,8 +58,7 @@ namespace MovieProject1.Services
             if (_detailsCache.TryGetValue(imdbId, out var cached))
                 return cached;
 
-            if (string.IsNullOrWhiteSpace(_apiKey))
-                throw new InvalidOperationException("OMDb API key is not configured.");
+            EnsureApiKey();
 
             var url = "https://www.omdbapi.com/?apikey=" + Uri.EscapeDataString(_apiKey)
                 + "&i=" + Uri.EscapeDataString(imdbId) + "&plot=full";
@@ -76,10 +74,16 @@ namespace MovieProject1.Services
                         ? result.Error
                         : "OMDb could not load this movie.");
 
-                result.Ratings = result.Ratings ?? new System.Collections.Generic.List<Rating>();
+                result.Ratings = result.Ratings ?? new List<Rating>();
                 _detailsCache[imdbId] = result;
                 return result;
             }
+        }
+
+        private void EnsureApiKey()
+        {
+            if (string.IsNullOrWhiteSpace(_apiKey))
+                throw new InvalidOperationException("OMDb API key is not configured. Add OmdbApiKey to App.config.");
         }
     }
 }
