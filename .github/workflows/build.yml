@@ -20,7 +20,15 @@ jobs:
         run: nuget restore MovieProject1.sln
 
       - name: Build
-        run: msbuild MovieProject1.sln /p:Configuration=Release /m
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          if (-not $vs) { throw "Visual Studio MSBuild installation was not found." }
+          & "$vs\MSBuild\Current\Bin\MSBuild.exe" MovieProject1.sln /p:Configuration=Release /m
 
       - name: Test
-        run: vstest.console.exe MovieProject1.Tests\bin\Release\MovieProject1.Tests.dll
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.TestTools.BuildTools -property installationPath
+          if (-not $vs) { throw "Visual Studio Test Platform installation was not found." }
+          & "$vs\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe" MovieProject1.Tests\bin\Release\MovieProject1.Tests.dll
