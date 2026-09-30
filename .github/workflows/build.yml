@@ -19,11 +19,6 @@ jobs:
       - name: Restore packages
         run: nuget restore MovieProject1.sln
 
-      - name: Inspect SQLite native files
-        shell: pwsh
-        run: |
-          Get-ChildItem -Path packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0 -Recurse -Filter SQLite.Interop.dll | Select-Object -ExpandProperty FullName
-
       - name: Build
         shell: pwsh
         run: |
