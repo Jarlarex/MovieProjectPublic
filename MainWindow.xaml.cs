@@ -1,193 +1,196 @@
-﻿using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
-using System.Data.OleDb;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using MovieProject1.Data;
+using MovieProject1.Infrastructure;
+using MovieProject1.Services;
 
 namespace MovieProject1
 {
     public partial class MainWindow : Window
     {
-        private OmdbApiService _omdbApiService = new OmdbApiService(); // Service for interacting with the OMDB API
-        private static readonly HttpClient _httpClient = new HttpClient(); // Client for making HTTP requests
-        private const string YouTubeApiKey = ""; // API key for YouTube data API
-        private OleDbConnection connection; // Connection object for the database
-        private DatabaseManager _dbManager; // Manager for database operations
+        private readonly IOmdbApiService _omdbApiService;
+        private readonly IYouTubeService _youTubeService;
+        private readonly IMovieRepository _repository;
+        private readonly MovieViewModel _viewModel = new MovieViewModel();
+        private readonly CancellationTokenSource _lifetimeCts = new CancellationTokenSource();
+        private CancellationTokenSource _searchCts;
+        private string _lastSearch;
 
-        public MovieViewModel ViewModel { get; private set; } = new MovieViewModel(); // ViewModel for binding data to the UI
+        public MovieViewModel ViewModel => _viewModel;
 
         public MainWindow()
         {
-            InitializeComponent(); // Initialize the window components
-            InitializeDatabaseConnection(); // Setup database connection
-            _dbManager = new DatabaseManager();
-            ViewModel = new MovieViewModel();
-            DataContext = ViewModel; // Set this window's data context for data bindings
-            _dbManager.OnLikedMoviesUpdated += LoadLikedMovies; // Subscribe to liked movies update event
-            _dbManager.OnWatchlistMoviesUpdated += LoadWatchlistMovies; // Subscribe to watchlist movies update event
+            InitializeComponent();
 
-            LoadLibraryAsync(); // Load the initial movie library asynchronously
-        }
-
-        private async void LoadLibraryAsync()
-        {
-            var likedMovies = await _dbManager.FetchLikedMovies(); // Asynchronously fetch liked movies
-            var watchlistMovies = await _dbManager.FetchWatchlistMovies(); // Asynchronously fetch movies in the watchlist
-
-            ViewModel.LikedMovies = new ObservableCollection<MovieDetail>(likedMovies); // Update ViewModel with liked movies
-            ViewModel.WatchlistMovies = new ObservableCollection<MovieDetail>(watchlistMovies); // Update ViewModel with watchlist movies
-        }
-
-        private void LoadLikedMovies()
-        {
-            Application.Current.Dispatcher.Invoke(async () =>
+            var httpClient = new HttpClient
             {
-                ViewModel.LikedMovies = new ObservableCollection<MovieDetail>(await _dbManager.FetchLikedMovies()); // Update the liked movies on UI thread
-            });
+                Timeout = TimeSpan.FromSeconds(15)
+            };
+
+            _omdbApiService = new OmdbApiService(httpClient, AppConfiguration.OmdbApiKey);
+            _youTubeService = new YouTubeService(httpClient, AppConfiguration.YouTubeApiKey);
+
+            var databasePath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "MovieProject1",
+                "MovieProject.sqlite");
+
+            _repository = new SqliteMovieRepository(databasePath);
+            DataContext = _viewModel;
+            Loaded += MainWindow_Loaded;
+            Closed += MainWindow_Closed;
         }
 
-        private void LoadWatchlistMovies()
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            Application.Current.Dispatcher.Invoke(async () =>
-            {
-                ViewModel.WatchlistMovies = new ObservableCollection<MovieDetail>(await _dbManager.FetchWatchlistMovies()); // Update the watchlist movies on UI thread
-            });
-        }
-
-        private void InitializeDatabaseConnection()
-        {
-            string connectionString = @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=MovieDatabase.mdb";
-            connection = new OleDbConnection(connectionString); // Setup the connection string for the database
-
             try
             {
-                connection.Open(); // Try opening the database connection
+                await _repository.InitializeAsync(_lifetimeCts.Token);
+                await LoadLibraryAsync(_lifetimeCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to connect to database: " + ex.Message); // Show error message if connection fails
+                _viewModel.ErrorMessage = "Could not initialize the local library: " + ex.Message;
             }
+        }
+
+        private async Task LoadLibraryAsync(CancellationToken cancellationToken)
+        {
+            var liked = await _repository.GetLikedMoviesAsync(cancellationToken);
+            var watchlist = await _repository.GetWatchlistMoviesAsync(cancellationToken);
+
+            _viewModel.LikedMovies = new ObservableCollection<MovieDetail>(liked);
+            _viewModel.WatchlistMovies = new ObservableCollection<MovieDetail>(watchlist);
         }
 
         private async void SearchButton_Click(object sender, RoutedEventArgs e)
         {
+            await SearchAsync(1);
+        }
+
+        private async Task SearchAsync(int page)
+        {
+            var query = SearchBox.Text?.Trim();
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                _viewModel.ErrorMessage = "Enter a movie title to search.";
+                return;
+            }
+
+            _searchCts?.Cancel();
+            _searchCts?.Dispose();
+            _searchCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
+            var token = _searchCts.Token;
+
+            _viewModel.IsBusy = true;
+            _viewModel.ErrorMessage = null;
+
             try
             {
-                var searchResult = await _omdbApiService.GetMovieDetailsAsync(SearchBox.Text); // Search for movies using the OMDB API
+                var result = await _omdbApiService.SearchAsync(query, page, token);
+                token.ThrowIfCancellationRequested();
 
-                if (searchResult != null && searchResult.Movies != null)
-                {
-                    ViewModel.UpdateMovies(searchResult.Movies); // Update the ViewModel with the search results
-                }
-                else
-                {
-                    ViewModel.ErrorMessage = "Movies not found."; // Set error message if no movies found
-                }
+                var totalResults = 0;
+                int.TryParse(result.TotalResults, out totalResults);
+
+                _lastSearch = query;
+                _viewModel.SetSearchPage(result.Movies, page, totalResults);
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
-                ViewModel.ErrorMessage = $"Error: {ex.Message}"; // Set error message on exception
+                _viewModel.ErrorMessage = ex.Message;
+            }
+            finally
+            {
+                if (!token.IsCancellationRequested)
+                    _viewModel.IsBusy = false;
             }
         }
 
-        private void PrevPageButton_Click(object sender, RoutedEventArgs e)
+        private async void PrevPageButton_Click(object sender, RoutedEventArgs e)
         {
-            if (ViewModel.CurrentPage > 0)
-            {
-                ViewModel.CurrentPage--; // Decrement the current page
-            }
+            if (_viewModel.CurrentPage <= 1 || string.IsNullOrWhiteSpace(_lastSearch))
+                return;
+
+            await SearchAsync(_viewModel.CurrentPage - 1);
         }
 
-        private void NextPageButton_Click(object sender, RoutedEventArgs e)
+        private async void NextPageButton_Click(object sender, RoutedEventArgs e)
         {
-            int lastMovieIndex = (ViewModel.CurrentPage + 1) * ViewModel.ItemsPerPage;
+            if (_viewModel.CurrentPage >= _viewModel.TotalPages || string.IsNullOrWhiteSpace(_lastSearch))
+                return;
 
-            if (lastMovieIndex < ViewModel.AllMovies.Count)
-            {
-                ViewModel.CurrentPage++; // Increment the current page if not at the end
-            }
+            await SearchAsync(_viewModel.CurrentPage + 1);
         }
 
         private async void MoviesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var listView = sender as ListView;
-            var selectedMovie = listView.SelectedItem as MovieDetail; // Get the selected movie
-
-            if (selectedMovie != null)
-            {
-                var movieDetailFull = await _omdbApiService.GetMovieDetailsFullAsync(selectedMovie.imdbID);
-                string trailerUrl = await FetchYouTubeTrailerUrlAsync($"{selectedMovie.Title} trailer");
-
-                if (movieDetailFull != null)
-                {
-                    var movieDetailsWindow = new MovieDetailsWindow(movieDetailFull, trailerUrl); // Open new window with full movie details
-                    movieDetailsWindow.Show(); // Show the new window
-                }
-            }
+            await OpenSelectedMovieAsync(sender, e);
         }
 
-        private async Task<string> FetchYouTubeTrailerUrlAsync(string searchQuery)
+        private async void LikedMoviesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            string requestUri = $"https://www.googleapis.com/youtube/v3/search?part=snippet&q={Uri.EscapeDataString(searchQuery)}&maxResults=1&type=video&key={YouTubeApiKey}";
+            await OpenSelectedMovieAsync(sender, e);
+        }
+
+        private async void WatchlistMoviesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            await OpenSelectedMovieAsync(sender, e);
+        }
+
+        private async Task OpenSelectedMovieAsync(object sender, SelectionChangedEventArgs e)
+        {
+            if (!(sender is ListView listView) || e.AddedItems.Count == 0)
+                return;
+
+            var movie = e.AddedItems[0] as MovieDetail;
+            listView.SelectedItem = null;
+
+            if (movie == null || string.IsNullOrWhiteSpace(movie.imdbID))
+                return;
 
             try
             {
-                var response = await _httpClient.GetStringAsync(requestUri); // Send request to YouTube API
-                dynamic results = JsonConvert.DeserializeObject(response); // Deserialize the response
+                var detailTask = _omdbApiService.GetDetailsAsync(movie.imdbID, _lifetimeCts.Token);
+                var trailerTask = _youTubeService.FindTrailerUrlAsync(movie.Title, movie.Year, _lifetimeCts.Token);
 
-                if (results.items.Count > 0)
-                {
-                    string videoId = results.items[0].id.videoId; // Extract video ID
-                    return $"https://www.youtube.com/watch?v={videoId}"; // Return YouTube URL
-                }
+                await Task.WhenAll(detailTask, trailerTask);
+
+                var window = new MovieDetailsWindow(
+                    detailTask.Result,
+                    trailerTask.Result,
+                    _repository);
+
+                window.Owner = this;
+                window.Show();
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"YouTube API Error: {ex.Message}"); // Log YouTube API errors
-            }
-
-            return null; // Return null if no video found
-        }
-
-        // Handles selection changes in the liked movies list view
-        private async void LikedMoviesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (!(sender is ListView listView)) return;
-            if (e.AddedItems.Count == 0) return;
-
-            var selectedMovie = e.AddedItems[0] as MovieDetail; // Get the selected movie
-            listView.SelectedItem = null; // Clear the selection immediately
-
-            var movieDetailFull = await _omdbApiService.GetMovieDetailsFullAsync(selectedMovie.imdbID);
-            string trailerUrl = await FetchYouTubeTrailerUrlAsync($"{selectedMovie.Title} trailer");
-
-            if (movieDetailFull != null)
-            {
-                var movieDetailsWindow = new MovieDetailsWindow(movieDetailFull, trailerUrl);
-                movieDetailsWindow.Show(); // Show the movie details window
+                _viewModel.ErrorMessage = "Could not load movie details: " + ex.Message;
             }
         }
 
-        // Handles selection changes in the watchlist movies list view
-        private async void WatchlistMoviesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void MainWindow_Closed(object sender, EventArgs e)
         {
-            if (!(sender is ListView listView)) return;
-            if (e.AddedItems.Count == 0) return;
-
-            var selectedMovie = e.AddedItems[0] as MovieDetail; // Get the selected movie
-            listView.SelectedItem = null; // Clear the selection immediately
-
-            var movieDetailFull = await _omdbApiService.GetMovieDetailsFullAsync(selectedMovie.imdbID);
-            string trailerUrl = await FetchYouTubeTrailerUrlAsync($"{selectedMovie.Title} trailer");
-
-            if (movieDetailFull != null)
-            {
-                var movieDetailsWindow = new MovieDetailsWindow(movieDetailFull, trailerUrl);
-                movieDetailsWindow.Show(); // Show the movie details window
-            }
+            _searchCts?.Cancel();
+            _searchCts?.Dispose();
+            _lifetimeCts.Cancel();
+            _lifetimeCts.Dispose();
         }
     }
 }
