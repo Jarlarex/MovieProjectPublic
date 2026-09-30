@@ -47,13 +47,13 @@
     <Compile Include="..\MovieDetailFull.cs" Link="MovieDetailFull.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\packages\System.Data.SQLite.Core.1.0.119\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.119\build\net46\System.Data.SQLite.Core.targets')" />
+  <Import Project="..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\System.Data.SQLite.Core.targets')" />
 
   <Target Name="CopySQLiteInterop" AfterTargets="Build">
     <MakeDir Directories="$(OutputPath)x86" />
     <MakeDir Directories="$(OutputPath)x64" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\packages\System.Data.SQLite.Core.1.0.119\build\net46\x86\SQLite.Interop.dll" DestinationFolder="$(OutputPath)x86" Condition="Exists('$(MSBuildProjectDirectory)\..\packages\System.Data.SQLite.Core.1.0.119\build\net46\x86\SQLite.Interop.dll')" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\packages\System.Data.SQLite.Core.1.0.119\build\net46\x64\SQLite.Interop.dll" DestinationFolder="$(OutputPath)x64" Condition="Exists('$(MSBuildProjectDirectory)\..\packages\System.Data.SQLite.Core.1.0.119\build\net46\x64\SQLite.Interop.dll')" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x86\SQLite.Interop.dll" DestinationFolder="$(OutputPath)x86" Condition="Exists('$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x86\SQLite.Interop.dll')" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x64\SQLite.Interop.dll" DestinationFolder="$(OutputPath)x64" Condition="Exists('$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x64\SQLite.Interop.dll')" />
   </Target>
 
 </Project>
