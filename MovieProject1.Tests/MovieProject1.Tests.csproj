@@ -38,12 +38,9 @@
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x86\SQLite.Interop.dll" DestinationFolder="$(OutputPath)x86" Condition="Exists('$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x86\SQLite.Interop.dll')" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x64\SQLite.Interop.dll" DestinationFolder="$(OutputPath)x64" Condition="Exists('$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x64\SQLite.Interop.dll')" />
   </Target>
-
 </Project>
       <Name>MovieProject1</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\MovieProject1.Data\MovieProject1.Data.csproj">
       <Project>{4E0E0D7D-2B4D-4E9D-A6A5-5D3C1D1E4F77}</Project>
       <Name>MovieProject1.Data</Name>
