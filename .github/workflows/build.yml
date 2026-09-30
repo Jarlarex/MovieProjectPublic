@@ -19,11 +19,6 @@ jobs:
       - name: Restore packages
         run: nuget restore MovieProject1.sln
 
-      - name: Inspect test adapter
-        shell: pwsh
-        run: |
-          Get-ChildItem -Path packages\MSTest.TestAdapter.3.6.3 -Recurse -Filter *TestAdapter*.dll | Select-Object -ExpandProperty FullName
-
       - name: Build
         shell: pwsh
         run: |
@@ -36,4 +31,4 @@ jobs:
         run: |
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
           if (-not $vs) { throw "Visual Studio Test Platform installation was not found." }
-          & "$vs\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe" MovieProject1.Tests\bin\Release\MovieProject1.Tests.dll /TestAdapterPath:packages\MSTest.TestAdapter.3.6.3\build\_common
+          & "$vs\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe" MovieProject1.Tests\bin\Release\MovieProject1.Tests.dll /TestAdapterPath:packages\MSTest.TestAdapter.3.6.3\build\net462
