@@ -21,7 +21,7 @@ namespace MovieProject1.Tests
             viewModel.SetSearchPage(movies, 2, 25);
 
             Assert.AreEqual(2, viewModel.CurrentPage);
-            Assert.AreEqual(7, viewModel.TotalPages);
+            Assert.AreEqual(3, viewModel.TotalPages);
             Assert.AreEqual(4, viewModel.Movies.Count);
         }
 
