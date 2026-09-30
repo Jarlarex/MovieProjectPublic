@@ -31,8 +31,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MovieProject1.csproj">
-      <Project>{F993B2C8-763F-4119-A862-55C221400ADC}
-  <Target Name="CopySQLiteInterop" AfterTargets="Build">
+      <Project>{F993B2C8-763F-4119-A862-55C221400ADC}  <Target Name="CopySQLiteInterop" AfterTargets="Build">
     <MakeDir Directories="$(OutputPath)x86" />
     <MakeDir Directories="$(OutputPath)x64" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x86\SQLite.Interop.dll" DestinationFolder="$(OutputPath)x86" Condition="Exists('$(MSBuildProjectDirectory)\..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\x86\SQLite.Interop.dll')" />
