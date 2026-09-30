@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Net.Http;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -67,8 +68,8 @@ namespace MovieProject1
             var liked = await _repository.GetLikedMoviesAsync(cancellationToken);
             var watchlist = await _repository.GetWatchlistMoviesAsync(cancellationToken);
 
-            _viewModel.LikedMovies = new ObservableCollection<MovieDetail>(liked);
-            _viewModel.WatchlistMovies = new ObservableCollection<MovieDetail>(watchlist);
+            _viewModel.LikedMovies = new ObservableCollection<MovieDetail>(liked.ToList());
+            _viewModel.WatchlistMovies = new ObservableCollection<MovieDetail>(watchlist.ToList());
         }
 
         private async void SearchButton_Click(object sender, RoutedEventArgs e)
