@@ -1,0 +1,26 @@
+name: Build and test
+
+on:
+  push:
+    branches: [ master, "refactor/**" ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore packages
+        run: nuget restore MovieProject1.sln
+
+      - name: Build
+        run: msbuild MovieProject1.sln /p:Configuration=Release /m
+
+      - name: Test
+        run: vstest.console.exe MovieProject1.Tests\bin\Release\MovieProject1.Tests.dll
