@@ -19,6 +19,11 @@ jobs:
       - name: Restore packages
         run: nuget restore MovieProject1.sln
 
+      - name: Inspect test adapter
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path packages\MSTest.TestAdapter.3.6.3 -Recurse -Filter *TestAdapter*.dll | Select-Object -ExpandProperty FullName
+
       - name: Build
         shell: pwsh
         run: |
