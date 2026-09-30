@@ -8,7 +8,7 @@ namespace MovieProject1
 {
     public sealed class MovieViewModel : INotifyPropertyChanged
     {
-        private readonly int _itemsPerPage = 4;
+        private readonly int _itemsPerPage = 10;
         private ObservableCollection<MovieDetail> _movies = new ObservableCollection<MovieDetail>();
         private ObservableCollection<MovieDetail> _likedMovies = new ObservableCollection<MovieDetail>();
         private ObservableCollection<MovieDetail> _watchlistMovies = new ObservableCollection<MovieDetail>();
