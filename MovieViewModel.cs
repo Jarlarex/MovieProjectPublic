@@ -74,7 +74,7 @@ namespace MovieProject1
             Movies = new ObservableCollection<MovieDetail>(AllMovies);
         }
 
-        protected void OnPropertyChanged(string propertyName)
+        private void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
