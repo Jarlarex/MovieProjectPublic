@@ -34,6 +34,6 @@ jobs:
       - name: Test
         shell: pwsh
         run: |
-          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.TestTools.BuildTools -property installationPath
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
           if (-not $vs) { throw "Visual Studio Test Platform installation was not found." }
           & "$vs\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe" MovieProject1.Tests\bin\Release\MovieProject1.Tests.dll
