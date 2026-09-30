@@ -19,6 +19,11 @@ jobs:
       - name: Restore packages
         run: nuget restore MovieProject1.sln
 
+      - name: Inspect SQLite package
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path packages\System.Data.SQLite.Core.1.0.118 -Recurse -Filter System.Data.SQLite.dll | Select-Object -ExpandProperty FullName
+
       - name: Build
         shell: pwsh
         run: |
