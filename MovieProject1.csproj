@@ -95,8 +95,6 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MovieDetail.cs" />
-    <Compile Include="MovieDetailFull.cs" />
     <Compile Include="MovieDetailsWindow.xaml.cs">
       <DependentUpon>MovieDetailsWindow.xaml</DependentUpon>
     </Compile>
